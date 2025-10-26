@@ -44,13 +44,13 @@
             </section>
           </ng-template>
           <ng-template #subtitle>
-            <span class="text-sm text-gray-600">{{ pessoa.funcao || 'Sem função' }}</span>
+            <span class="text-sm text-gray-600">{{ pessoa.origem || 'Sem origem definida' }}</span>
           </ng-template>
           <div class="space-y-2">
-            <p><strong>CPF/CNPJ:</strong> {{ pessoa.cpfCnpj }}</p>
-            <p class="text-sm text-gray-700">
-              {{ pessoa.observacao || 'Sem observações' }}
-            </p>
+            <p><strong>CPF/CNPJ:</strong> {{ pessoa.cpfCnpj | cpfCnpj }}</p>
+            @if (pessoa.dataNascimento) {
+              <p class="text-sm text-gray-600"><strong>Data de Nascimento:</strong> {{ pessoa.dataNascimento }}</p>
+            }
           </div>
         </p-card>
       }
@@ -102,41 +102,40 @@
 
       <div class="flex flex-col space-y-2">
         <label for="cpfCnpj" class="font-semibold">CPF/CNPJ *</label>
-        <input
+        <p-inputmask
           [ngModel]="editandoPessoa?.cpfCnpj"
+          (ngModelChange)="onCpfCnpjChange($event)"
           required
           name="cpfCnpj"
           id="cpfCnpj"
-          type="text"
-          placeholder="CPF ou CNPJ..."
+          [mask]="cpfMask"
+          placeholder="Digite CPF ou CNPJ"
+          styleClass="w-full"
+        ></p-inputmask>
+        <small class="text-gray-500">{{ isCnpj ? 'CNPJ' : 'CPF' }}</small>
+      </div>
+
+      <div class="flex flex-col space-y-2">
+        <label for="dataNascimento" class="font-semibold">Data de Nascimento</label>
+        <input
+          [ngModel]="editandoPessoa?.dataNascimento"
+          name="dataNascimento"
+          id="dataNascimento"
+          type="date"
           pInputText
         />
       </div>
 
       <div class="flex flex-col space-y-2">
-        <label for="funcao" class="font-semibold">Função</label>
-        <p-select
-          [ngModel]="editandoPessoa?.funcao"
-          [options]="funcaoOptions"
-          name="funcao"
-          id="funcao"
-          placeholder="Selecione uma função"
-          [showClear]="true"
-          styleClass="w-full"
-        ></p-select>
-      </div>
-
-      <div class="flex flex-col space-y-2">
-        <label for="observacao" class="font-semibold">Observação</label>
-        <textarea
-          [ngModel]="editandoPessoa?.observacao"
-          name="observacao"
-          id="observacao"
-          rows="4"
-          placeholder="Observações sobre a pessoa..."
-          pInputTextarea
-          class="w-full"
-        ></textarea>
+        <label for="origem" class="font-semibold">Origem</label>
+        <input
+          [ngModel]="editandoPessoa?.origem"
+          name="origem"
+          id="origem"
+          type="text"
+          placeholder="Origem da pessoa (Cliente, Fornecedor, etc.)"
+          pInputText
+        />
       </div>
 
       <div class="flex justify-end gap-2 pt-4">

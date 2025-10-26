@@ -5,8 +5,6 @@ import { ButtonModule } from 'primeng/button';
 import { FormsModule, NgForm } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { Textarea } from 'primeng/textarea';
-import { Select } from 'primeng/select';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ToastModule } from 'primeng/toast';
@@ -16,11 +14,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { InputMaskModule } from 'primeng/inputmask';
 import { PessoaService } from '../../../services/pessoa.service';
 import { AlterarPessoaBody, CadastrarPessoaBody, PessoaResponse } from '../../../models/pessoa.model';
-
-interface FuncaoOption {
-  label: string;
-  value: string;
-}
+import { CpfCnpjPipe } from '../../../pipes/cpf-cnpj.pipe';
 
 @Component({
   selector: 'app-pessoas-tabs',
@@ -32,14 +26,13 @@ interface FuncaoOption {
     FormsModule,
     DialogModule,
     InputTextModule,
-    Textarea,
-    Select,
     PaginatorModule,
     ToolbarModule,
     ToastModule,
     IconFieldModule,
     InputIconModule,
     InputMaskModule,
+    CpfCnpjPipe,
   ],
   templateUrl: './pessoas-tabs.html',
   providers: [MessageService],
@@ -55,11 +48,8 @@ export class PessoasTabsComponent {
   modalFormularioAberto: boolean = false;
   editandoPessoa: PessoaResponse | undefined;
 
-  funcaoOptions: FuncaoOption[] = [
-    { label: 'Cliente', value: 'Cliente' },
-    { label: 'Fornecedor', value: 'Fornecedor' },
-    { label: 'Funcionário', value: 'Funcionario' },
-  ];
+  cpfMask: string = '999.999.999-99';
+  isCnpj: boolean = false;
 
   paginaAtual: number = 0;
   itensPorPagina: number = 6;
@@ -69,6 +59,33 @@ export class PessoasTabsComponent {
 
   ngOnInit() {
     this.buscarPessoas();
+    this.adicionarDadosTeste();
+  }
+
+  adicionarDadosTeste() {
+    const clienteTeste: CadastrarPessoaBody = {
+      nome: 'cliente_teste',
+      cpfCnpj: '11122233344',
+      dataNascimento: null,
+      origem: 'Cliente',
+    };
+
+    const fornecedorTeste: CadastrarPessoaBody = {
+      nome: 'fornecedor_teste',
+      cpfCnpj: '12345678000190',
+      dataNascimento: null,
+      origem: 'Fornecedor',
+    };
+
+    this.pessoaService.cadastrarPessoa(clienteTeste).subscribe({
+      next: () => console.log('Cliente teste adicionado'),
+      error: (err) => console.log('Cliente teste já existe ou erro:', err.message),
+    });
+
+    this.pessoaService.cadastrarPessoa(fornecedorTeste).subscribe({
+      next: () => console.log('Fornecedor teste adicionado'),
+      error: (err) => console.log('Fornecedor teste já existe ou erro:', err.message),
+    });
   }
 
   buscarPessoas() {
@@ -96,7 +113,7 @@ export class PessoasTabsComponent {
       this.pessoasFiltradas = this.pessoas.filter(
         (p) =>
           p.nome.toLowerCase().includes(termo) ||
-          (p.funcao && p.funcao.toLowerCase().includes(termo)) ||
+          (p.origem && p.origem.toLowerCase().includes(termo)) ||
           p.cpfCnpj.includes(termo)
       );
     }
@@ -129,20 +146,32 @@ export class PessoasTabsComponent {
 
   esconderFormularioModal(form: NgForm) {
     this.editandoPessoa = undefined;
+    this.cpfMask = '999.999.999-99';
+    this.isCnpj = false;
     form.resetForm();
+  }
+
+  onCpfCnpjChange(value: string) {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length > 11) {
+      this.cpfMask = '99.999.999/9999-99';
+      this.isCnpj = true;
+    } else {
+      this.cpfMask = '999.999.999-99';
+      this.isCnpj = false;
+    }
   }
 
   enviarFormulario(form: NgForm) {
     if (form.invalid) return;
 
     if (!this.editandoPessoa) {
+      const cpfCnpjLimpo = form.value.cpfCnpj.replace(/\D/g, '');
       const novaPessoa: CadastrarPessoaBody = {
         nome: form.value.nome,
-        cpfCnpj: form.value.cpfCnpj,
+        cpfCnpj: cpfCnpjLimpo,
         dataNascimento: form.value.dataNascimento || null,
         origem: form.value.origem || null,
-        funcao: form.value.funcao || null,
-        observacao: form.value.observacao || null,
       };
 
       this.pessoaService.cadastrarPessoa(novaPessoa).subscribe({
@@ -164,14 +193,13 @@ export class PessoasTabsComponent {
         },
       });
     } else {
+      const cpfCnpjLimpo = form.value.cpfCnpj.replace(/\D/g, '');
       const pessoaAtualizada: AlterarPessoaBody = {
         id: this.editandoPessoa.id,
         nome: form.value.nome,
-        cpfCnpj: form.value.cpfCnpj,
+        cpfCnpj: cpfCnpjLimpo,
         dataNascimento: form.value.dataNascimento || null,
         origem: form.value.origem || null,
-        funcao: form.value.funcao || null,
-        observacao: form.value.observacao || null,
       };
 
       this.pessoaService.editarPessoa(pessoaAtualizada).subscribe({
